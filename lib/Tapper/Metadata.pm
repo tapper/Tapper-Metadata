@@ -160,6 +160,7 @@ sub add_single_metadata {
                     redo TRANSACTION;
                 }
             }
+            print STDERR $@;
             return $b_success;
         }
         else {
