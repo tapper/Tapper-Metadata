@@ -11,6 +11,13 @@ sub get_default_config {
                 name    => 'testrun',
                 primary => 'id',
             },
+            stats_table => {
+                name        => 'reportgrouptestrunstats',
+                primary     => 'testrun_id',
+                foreign_key => {
+                    main_table              => 'id',
+                },
+            },
             additional_relation_table => {
                 name          => 'testrun_additional_relations',
                 primary       => [ 'testrun_id', 'bench_additional_value_id' ],

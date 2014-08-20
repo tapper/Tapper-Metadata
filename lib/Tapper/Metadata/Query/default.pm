@@ -8,7 +8,9 @@ use List::MoreUtils qw( any );
 
 my %h_used_selects;
 my %h_default_columns = (
-    'TESTRUN' => 't.id',
+    'TESTRUN'       => { column => 't.id' },
+    'TESTPLAN'      => { column => 't.testplan_id' },
+    'STATS_FAILED'  => { column => 'rgts.failed', addon => 'stats_table' },
 );
 my $fn_numeric_operators = sub {
     return $_[0]->{options} && $_[0]->{options}{numeric}
@@ -342,6 +344,7 @@ sub select_benchmark_values {
     }
 
     # where clause
+    my %h_addon;
     my $i_counter = 0;
     my %h_local_from_cache;
     if ( $hr_search->{where} ) {
@@ -377,10 +380,13 @@ sub select_benchmark_values {
                     : [ $hr_where->{values} ]
             ;
 
-            if ( $h_default_columns{$hr_where->{column}} ) {
+            if ( my $hr_def_col = $h_default_columns{$hr_where->{column}} ) {
+                if ( $hr_def_col->{addon} ) {
+                    $h_addon{$hr_def_col->{addon}} = 1; 
+                }
                 push @a_where_vals, @{$hr_where->{values}};
                 push @a_where, $hr_where->{__operator__}{where}->({
-                    %{$hr_where}, column => $h_default_columns{$hr_where->{column}},
+                    %{$hr_where}, column => $hr_def_col->{column},
                 });
             }
             else {
@@ -487,8 +493,11 @@ sub select_benchmark_values {
         my $s_column;
         my $s_statement;
 
-        if ( $h_default_columns{$hr_select->{column}} ) {
-            $s_column = $h_default_columns{$hr_select->{column}};
+        if ( my $hr_def_col = $h_default_columns{$hr_select->{column}} ) {
+            if ( $hr_def_col->{addon} ) {
+                $h_addon{$hr_def_col->{addon}} = 1;
+            } 
+            $s_column = $hr_def_col->{column};
         }
         else {
             if ( $h_local_from_cache{$hr_select->{column}} ) {
@@ -539,8 +548,11 @@ sub select_benchmark_values {
 
         for my $hr_order_by ( @{$hr_search->{order_by}} ) {
             my $s_column;
-            if ( $h_default_columns{$hr_order_by->{column}} ) {
-                $s_column = $h_default_columns{$hr_order_by->{column}};
+            if ( my $hr_def_col = $h_default_columns{$hr_order_by->{column}} ) {
+                if ( $hr_def_col->{addon} ) {
+                    $h_addon{$hr_def_col->{addon}} = 1;
+                }
+                $s_column = $hr_def_col->{column};
             }
             elsif ( $h_local_from_cache{$hr_order_by->{column}} ) {
                 $s_column = $h_local_from_cache{$hr_order_by->{column}};
@@ -578,6 +590,13 @@ sub select_benchmark_values {
                 ? $h_local_from_cache{$1}
                 : die "column '$1' not exists in SELECT clause"
         /gex;
+    }
+
+    if ( $h_addon{stats_table} ) {
+        push @a_from, "
+            JOIN $or_self->{config}{tables}{stats_table}{name} rgts
+                ON ( rgts.$or_self->{config}{tables}{stats_table}{primary} = t.$or_self->{config}{tables}{stats_table}{foreign_key}{main_table} )
+        ";
     }
 
     return $or_self->execute_query(
