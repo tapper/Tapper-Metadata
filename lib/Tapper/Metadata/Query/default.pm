@@ -598,7 +598,7 @@ sub insert_metadata_header {
             ( ?, ? )
     ", $i_testrun_id, $or_self->now );
 
-    return $or_self->{query}->last_insert_id(
+    return $or_self->last_insert_id(
         $or_self->{config}{tables}{headers_table}{name},
         $or_self->{config}{tables}{headers_table}{primary},
     );
