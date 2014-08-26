@@ -600,7 +600,7 @@ sub insert_metadata_header {
 
     return $or_self->{query}->last_insert_id(
         $or_self->{config}{tables}{headers_table}{name},
-        $or_self->{config}{tables}{headers_table}{name}{primary},
+        $or_self->{config}{tables}{headers_table}{primary},
     );
 
 }

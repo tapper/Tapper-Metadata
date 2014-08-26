@@ -20,7 +20,7 @@ sub get_default_config {
             },
             headers_table => {
                 name          => 'testrun_metadata_headers',
-                primary       => [ 'testrun_metadata_header_id' ],
+                primary       => 'testrun_metadata_header_id',
                 foreign_key   => {
                     main_table             => 'testrun_id',
                 },                
