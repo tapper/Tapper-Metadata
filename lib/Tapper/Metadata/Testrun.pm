@@ -18,11 +18,18 @@ sub get_default_config {
                     main_table              => 'id',
                 },
             },
-            additional_relation_table => {
-                name          => 'testrun_additional_relations',
-                primary       => [ 'testrun_id', 'bench_additional_value_id' ],
+            headers_table => {
+                name          => 'testrun_metadata_headers',
+                primary       => [ 'testrun_metadata_header_id' ],
                 foreign_key   => {
                     main_table             => 'testrun_id',
+                },                
+            },
+            lines_table => {
+                name          => 'testrun_metadata_lines',
+                primary       => [ 'testrun_metadata_header_id', 'bench_additional_value_id' ],
+                foreign_key   => {
+                    headers_table          => 'testrun_metadata_header_id',
                     additional_value_table => 'bench_additional_value_id',
                 },
             },

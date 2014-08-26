@@ -71,26 +71,19 @@ sub insert_addvalue {
 
 }
 
-sub insert_addvaluerelation {
+sub insert_metadata_line {
 
     my ( $or_self, @a_vals ) = @_;
 
     $or_self->execute_query( "
-        INSERT IGNORE INTO $or_self->{config}{tables}{additional_relation_table}{name}
+        INSERT IGNORE INTO $or_self->{config}{tables}{lines_table}{name}
             (
-                $or_self->{config}{tables}{additional_relation_table}{foreign_key}{main_table},
-                $or_self->{config}{tables}{additional_value_table}{primary},
-                created_at
+                $or_self->{config}{tables}{headers_table}{primary},
+                $or_self->{config}{tables}{additional_value_table}{primary}
             )
         VALUES
-            ( ?, ?, ? )
+            ( ?, ? )
     ", @a_vals, $or_self->now );
-
-    if ( $or_self->{cache} ) {
-        $or_self->{cache}->set(
-            "addvaluerelation||$a_vals[0]||$a_vals[1]" => $a_vals[1],
-        );
-    }
 
     return 1;
 

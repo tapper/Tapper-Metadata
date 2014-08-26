@@ -2,6 +2,8 @@ package Tapper::Metadata::Query;
 
 use strict;
 use warnings;
+
+use DateTime;
 use Digest::MD5;
 
 sub new {
@@ -61,7 +63,6 @@ sub last_insert_id {
 }
 
 sub now {
-    require DateTime;
     return DateTime->now()->strftime('%F %T');
 }
 

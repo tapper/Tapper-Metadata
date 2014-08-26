@@ -107,47 +107,42 @@ sub add_single_metadata {
             if (! $hr_data->{TESTRUN} ) {
                 die "Testrun ID not found";
             }
+
+            # add metadata header
+            my $i_header_id = $or_self->{query}->insert_metadata_header(
+                delete $hr_data->{TESTRUN}
+            );
+
+            # add metadata lines
             for my $s_key ( keys %{$hr_data} ) {
-                $hr_data->{$s_key} = toarrayref( $hr_data->{$s_key} );
-            }
 
-            my $ar_testruns = $hr_data->{TESTRUN};
-            for my $i_testrun_id ( @{$ar_testruns} ) {
-                for my $s_key ( keys %{$hr_data} ) {
-                    if ( $s_key ne 'TESTRUN' ) {
+                my $s_value = $hr_data->{$s_key};
 
-                        # additional type
-                        my $i_add_type_id = $or_self->{query}->select_addtype_by_name( $s_key );
-                        if (! $i_add_type_id ) {
-                            $i_add_type_id = $or_self->{query}->insert_addtype( $s_key );
-                            if ( $or_self->{cache} ) {
-                                $or_self->{cache}->set( "addtype||$s_key" => $i_add_type_id );
-                            }
-                        }
-
-                        for my $s_value ( @{$hr_data->{$s_key}} ) {
-
-                            # additional value
-                            my $i_add_value_id = $or_self->{query}->select_addvalue_id( $i_add_type_id, $s_value );
-                            if (! $i_add_value_id ) {
-                                $i_add_value_id = $or_self->{query}->insert_addvalue(
-                                    $i_add_type_id, $s_value,
-                                );
-                                if ( $or_self->{cache} ) {
-                                    $or_self->{cache}->set( "addvalue||$i_add_type_id||$s_value" => $i_add_value_id );
-                                }
-                            }
-
-                            # additional value relation
-                            if (! $or_self->{query}->select_addvaluerelation_id( $i_add_value_id, $i_testrun_id ) ) {
-                                $or_self->{query}->insert_addvaluerelation(
-                                    $i_testrun_id, $i_add_value_id,
-                                );
-                            }
-
-                        }
+                # additional type
+                my $i_add_type_id = $or_self->{query}->select_addtype_by_name( $s_key );
+                if (! $i_add_type_id ) {
+                    $i_add_type_id = $or_self->{query}->insert_addtype( $s_key );
+                    if ( $or_self->{cache} ) {
+                        $or_self->{cache}->set( "addtype||$s_key" => $i_add_type_id );
                     }
                 }
+
+                # additional value
+                my $i_add_value_id = $or_self->{query}->select_addvalue_id( $i_add_type_id, $s_value );
+                if (! $i_add_value_id ) {
+                    $i_add_value_id = $or_self->{query}->insert_addvalue(
+                        $i_add_type_id, $s_value,
+                    );
+                    if ( $or_self->{cache} ) {
+                        $or_self->{cache}->set( "addvalue||$i_add_type_id||$s_value" => $i_add_value_id );
+                    }
+                }
+
+                # additional metadata line
+                $or_self->{query}->insert_metadata_line(
+                    $i_header_id, $i_add_value_id,
+                );
+
             }
 
         };
@@ -255,27 +250,6 @@ sub search_hash {
 
 }
 
-=head2 toarrayref
-
-    takes an element and return an array reference in every case 
-
-=cut
-
-sub toarrayref {
-
-    my ( $value ) = @_;
-
-    if ( not defined $value ) {
-        return [];
-    }
-    elsif ( ref( $value ) ne 'ARRAY' ) {
-        return [ $value ];
-    }
-
-    return $value;
-
-}
-
 1;
 
 __END__
@@ -296,14 +270,14 @@ Tapper::Metadata - Save and search Metadata points by database
         config => YAML::Syck::LoadFile('~/conf/tapper_metadata.conf'),
     });
 
-    my $b_success = $or_meta->add_metadata([
+    my $b_success = $or_meta->add_multi_metadata([
         {
             TESTRUN => 12345,
-            key_1   => ['value_1_1','value_1_2'],
-            key_2   => 'value_2_1',
+            key_1   => 'value_1',
+            key_2   => 'value_2',
         },{
             TESTRUN => 12346,
-            key_3   => 'value_3_1',
+            key_3   => 'value_3',
         },
         ...
     ],{
@@ -316,8 +290,8 @@ Tapper::Metadata - Save and search Metadata points by database
             'key_2',
         ],
         where       => [
-            { operator => '!=', column => 'key_1', values => 'value_1_1', },
-            { operator => '=' , column => 'key_2', values => 'value_2_1', },
+            { operator => '!=', column => 'key_1', values => 'value_1', },
+            { operator => '=' , column => 'key_2', values => 'value_2', },
         ],
         order_by    => [
             'key_3',
@@ -380,8 +354,8 @@ Add one or more data points to a single metadata to the database.
 
     my $b_success = $or_meta->add_single_metadata({
         TESTRUN => 12345,
-        key_1   => ['value_1_1','value_1_2'],
-        key_2   => 'value_2_1',
+        key_1   => 'value_1',
+        key_2   => 'value_2',
     },{
         force => 1
     });
@@ -409,11 +383,11 @@ Add one or more data points to a multiple metadata to the database.
     my @a_error_idxs = $or_meta->add_multi_metadata([
         {
             TESTRUN => 12345,
-            key_1   => ['value_1_1','value_1_2'],
-            key_2   => 'value_2_1',
+            key_1   => 'value_1',
+            key_2   => 'value_2',
         },{
             TESTRUN => 12346,
-            key_3   => 'value_3_1',
+            key_3   => 'value_3',
         },
         ...
     ],{
@@ -449,8 +423,8 @@ Statement Handle.
             'key_2',
         ],
         where       => [
-            { operator => '!=', column => 'key_1', values => 'value_1_1', },
-            { operator => '=' , column => 'key_2', values => 'value_2_1', },
+            { operator => '!=', column => 'key_1', values => 'value_1', },
+            { operator => '=' , column => 'key_2', values => 'value_2', },
         ],
         where_sql   => q#,
             AND NOT(
@@ -528,8 +502,8 @@ An Array of Hash References containing restrictions for metadata points.
 
     ...
         where       => [
-            { operator => '!=', column => 'key_1', values => 'value_1_1', },
-            { operator => '=' , column => 'key_2', values => 'value_2_1', },
+            { operator => '!=', column => 'key_1', values => 'value_1', },
+            { operator => '=' , column => 'key_2', values => 'value_2', },
         ],
     ...
 
@@ -609,8 +583,8 @@ Returning all metadata points as Array of Hashes.
             'key_2',
         ],
         where       => [
-            { operator => '!=', column => 'key_1', values => 'value_1_1', },
-            { operator => '=' , column => 'key_2', values => 'value_2_1', },
+            { operator => '!=', column => 'key_1', values => 'value_1', },
+            { operator => '=' , column => 'key_2', values => 'value_2', },
         ],
         order_by    => [
             'key_3',
@@ -643,8 +617,8 @@ Every "key" create a new nested hash.
             'key_2',
         ],
         where       => [
-            { operator => '!=', column => 'key_1', values => 'value_1_1', },
-            { operator => '=' , column => 'key_2', values => 'value_2_1', },
+            { operator => '!=', column => 'key_1', values => 'value_1', },
+            { operator => '=' , column => 'key_2', values => 'value_2', },
         ],
         order_by    => [
             'key_3',

@@ -69,43 +69,6 @@ sub default_columns {
     return \%h_default_columns;
 }
 
-sub select_addvaluerelation_id {
-
-    my ( $or_self, $i_bench_additional_value_id, $i_main_id ) = @_;
-
-    if ( $or_self->{cache} ) {
-        if ( my $i_bench_additional_valuerelation_id = $or_self->{cache}->get("addvaluerelation||$i_bench_additional_value_id||$i_main_id") ) {
-            return $i_bench_additional_valuerelation_id;
-        }
-    }
-
-    my $s_primary              = $or_self->{config}{tables}{additional_relation_table}{primary}[0];
-    my $hr_additional_relation =
-        $or_self
-            ->execute_query(
-                "
-                    SELECT $s_primary
-                    FROM $or_self->{config}{tables}{additional_relation_table}{name}
-                    WHERE $or_self->{config}{tables}{additional_relation_table}{foreign_key}{main_table} = ?
-                      AND $or_self->{config}{tables}{additional_relation_table}{foreign_key}{additional_value_table} = ?
-                ",
-                $i_main_id,
-                $i_bench_additional_value_id,
-            )
-            ->fetchrow_hashref()
-    ;
-    if ( !$hr_additional_relation || !$hr_additional_relation->{$s_primary} ) {
-        return;
-    }
-    if ( $or_self->{cache} ) {
-        $or_self->{cache}->set(
-            "addvaluerelation||$i_bench_additional_value_id||$i_main_id" => $hr_additional_relation->{$s_primary},
-        );
-    }
-    return $hr_additional_relation->{$s_primary};
-
-}
-
 sub select_addtype_by_name {
 
     my ( $or_self, $s_add_type ) = @_;
@@ -408,15 +371,15 @@ sub select_benchmark_values {
                     push @a_from_vals, $i_add_type_id;
                     push @a_from, "
                         JOIN (
-                            $or_self->{config}{tables}{additional_relation_table}{name} bar$i_counter
+                            $or_self->{config}{tables}{lines_table}{name} bar$i_counter
                             JOIN $or_self->{config}{tables}{additional_value_table}{name} bav$i_counter
                                 ON (
-                                        bav$i_counter.$or_self->{config}{tables}{additional_value_table}{primary} = bar$i_counter.$or_self->{config}{tables}{additional_relation_table}{foreign_key}{additional_value_table}
+                                        bav$i_counter.$or_self->{config}{tables}{additional_value_table}{primary} = bar$i_counter.$or_self->{config}{tables}{lines_table}{foreign_key}{additional_value_table}
                                     AND bav$i_counter.$or_self->{config}{tables}{additional_value_table}{foreign_key}{additional_type_table} = ?
                                 )
                         )
                             ON (
-                                bar$i_counter.$or_self->{config}{tables}{additional_relation_table}{foreign_key}{main_table} = t.$or_self->{config}{tables}{main_table}{primary}
+                                bar$i_counter.$or_self->{config}{tables}{lines_table}{foreign_key}{headers_table} = t.$or_self->{config}{tables}{headers_table}{primary}
                             )
                     ";
                     
@@ -429,14 +392,14 @@ sub select_benchmark_values {
                     push @a_where, "
                         EXISTS(
                             SELECT * FROM
-                                $or_self->{config}{tables}{additional_relation_table}{name} bar
+                                $or_self->{config}{tables}{lines_table}{name} bar
                                 JOIN $or_self->{config}{tables}{additional_value_table}{name} bav
                                     ON (
-                                            bav.$or_self->{config}{tables}{additional_value_table}{primary} = bar.$or_self->{config}{tables}{additional_relation_table}{foreign_key}{additional_value_table}
+                                            bav.$or_self->{config}{tables}{additional_value_table}{primary} = bar.$or_self->{config}{tables}{lines_table}{foreign_key}{additional_value_table}
                                         AND bav.$or_self->{config}{tables}{additional_value_table}{foreign_key}{additional_type_table} = ?
                                         AND $s_where
                                     )
-                            WHERE bar.$or_self->{config}{tables}{additional_relation_table}{foreign_key}{main_table} = t.$or_self->{config}{tables}{main_table}{primary}
+                            WHERE bar.$or_self->{config}{tables}{lines_table}{foreign_key}{headers_table} = h.$or_self->{config}{tables}{headers_table}{primary}
                         )
                     ";
                 }
@@ -514,14 +477,14 @@ sub select_benchmark_values {
                 push @a_from_vals, $i_add_type_id;
                 push @a_from, "
                     LEFT JOIN (
-                        $or_self->{config}{tables}{additional_relation_table}{name} bar$i_counter
+                        $or_self->{config}{tables}{lines_table}{name} bar$i_counter
                         JOIN $or_self->{config}{tables}{additional_value_table}{name} bav$i_counter
                             ON (
                                     bav$i_counter.$or_self->{config}{tables}{additional_value_table}{foreign_key}{additional_type_table} = ?
-                                AND bav$i_counter.$or_self->{config}{tables}{additional_value_table}{primary} = bar$i_counter.$or_self->{config}{tables}{additional_relation_table}{foreign_key}{additional_value_table}
+                                AND bav$i_counter.$or_self->{config}{tables}{additional_value_table}{primary} = bar$i_counter.$or_self->{config}{tables}{lines_table}{foreign_key}{additional_value_table}
                             )
                     )
-                        ON ( bar$i_counter.$or_self->{config}{tables}{additional_relation_table}{foreign_key}{main_table} = t.$or_self->{config}{tables}{main_table}{primary} )
+                        ON ( bar$i_counter.$or_self->{config}{tables}{lines_table}{foreign_key}{headers_table} = h.$or_self->{config}{tables}{headers_table}{primary} )
                 ";
                 $s_column = $h_local_from_cache{$hr_select->{column}} = "bav$i_counter.bench_additional_value";
                 $i_counter++;
@@ -605,6 +568,8 @@ sub select_benchmark_values {
                 " . ( join ",\n", map {"$_"} @a_select ) . "
             FROM
                 $or_self->{config}{tables}{main_table}{name} t
+                JOIN $or_self->{config}{tables}{headers_table}{name} h
+                    ON ( t.id = h.testrun_id )
                 " . ( join "\n", @a_from ) . "
             WHERE
                 " .
@@ -618,6 +583,24 @@ sub select_benchmark_values {
         @a_select_vals,
         @a_from_vals,
         @a_where_vals,
+    );
+
+}
+
+sub insert_metadata_header {
+
+    my ( $or_self, $i_testrun_id ) = @_;
+
+    $or_self->execute_query( "
+        INSERT INTO $or_self->{config}{tables}{headers_table}{name}
+            ( testrun_id, created_at )
+        VALUES
+            ( ?, ? )
+    ", $i_testrun_id, $or_self->now );
+
+    return $or_self->{query}->last_insert_id(
+        $or_self->{config}{tables}{headers_table}{name},
+        $or_self->{config}{tables}{headers_table}{name}{primary},
     );
 
 }

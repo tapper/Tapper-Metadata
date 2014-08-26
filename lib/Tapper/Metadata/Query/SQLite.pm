@@ -58,15 +58,13 @@ sub insert_addvaluerelation {
     my ( $or_self, @a_vals ) = @_;
 
     return $or_self->execute_query( "
-        INSERT OR IGNORE INTO $or_self->{config}{tables}{additional_relation_table}{name}
+        INSERT OR IGNORE INTO $or_self->{config}{tables}{lines_table}{name}
             (
-                $or_self->{config}{tables}{additional_relation_table}{foreign_key}{main_table},
-                $or_self->{config}{tables}{additional_value_table}{primary},
-                active,
-                created_at
+                $or_self->{config}{tables}{headers_table}{primary},
+                $or_self->{config}{tables}{additional_value_table}{primary}
             )
         VALUES
-            ( ?, ?, 1, ? )
+            ( ?, ? )
     ", @a_vals, $or_self->now );
 
 }
