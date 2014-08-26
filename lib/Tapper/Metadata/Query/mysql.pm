@@ -83,7 +83,7 @@ sub insert_metadata_line {
             )
         VALUES
             ( ?, ? )
-    ", @a_vals, $or_self->now );
+    ", @a_vals );
 
     return 1;
 

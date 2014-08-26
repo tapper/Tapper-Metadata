@@ -65,7 +65,7 @@ sub insert_addvaluerelation {
             )
         VALUES
             ( ?, ? )
-    ", @a_vals, $or_self->now );
+    ", @a_vals );
 
 }
 
