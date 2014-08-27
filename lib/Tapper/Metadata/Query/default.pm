@@ -379,7 +379,7 @@ sub select_benchmark_values {
                                 )
                         )
                             ON (
-                                bar$i_counter.$or_self->{config}{tables}{lines_table}{foreign_key}{headers_table} = t.$or_self->{config}{tables}{headers_table}{primary}
+                                bar$i_counter.$or_self->{config}{tables}{lines_table}{foreign_key}{headers_table} = h.$or_self->{config}{tables}{headers_table}{primary}
                             )
                     ";
                     
