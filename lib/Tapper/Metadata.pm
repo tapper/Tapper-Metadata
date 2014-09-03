@@ -109,7 +109,21 @@ sub add_single_metadata {
             }
 
             # check for already existing metadata-set
-            if ( scalar( @{$or_self->search_array({ %{$hr_data}, exclusive => 1 })} ) < 1 ) {
+            my $hr_search = {
+                select      => [ 'TESTRUN', ],
+                exclusive   => 1,
+                where       => [
+                    map {
+                        {
+                            operator => '=',
+                            column   => $_,
+                            values   => $hr_data->{$_},
+                        },
+                    } keys %{$hr_data}
+                ],
+            };
+
+            if ( scalar( @{$or_self->search_array($hr_search)} ) < 1 ) {
 
                 # add metadata header
                 my $i_header_id = $or_self->{query}->insert_metadata_header(
