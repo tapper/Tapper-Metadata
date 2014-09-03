@@ -330,6 +330,17 @@ sub select_benchmark_values {
             $i_counter++;
         }
 
+        # run search in exclusive mode
+        if ( $hr_search->{exclusive} ) {
+              push @a_where_vals, scalar( keys { map { $_->{column} => 1 } @{$hr_search->{where}} } );
+              push @a_where     , "
+                  ? = (
+                      SELECT COUNT(1) FROM $or_self->{config}{tables}{lines_table}{name} bar
+                      WHERE bar.$or_self->{config}{tables}{lines_table}{foreign_key}{headers_table} = h.$or_self->{config}{tables}{headers_table}{primary}
+                  )
+              ";
+        }
+
         $i_counter = 0;
         for my $hr_where (
             sort {

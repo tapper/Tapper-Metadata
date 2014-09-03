@@ -108,40 +108,45 @@ sub add_single_metadata {
                 die "Testrun ID not found";
             }
 
-            # add metadata header
-            my $i_header_id = $or_self->{query}->insert_metadata_header(
-                delete $hr_data->{TESTRUN}
-            );
+            # check for already existing metadata-set
+            if ( scalar( @{$or_self->search_array({ %{$hr_data}, exclusive => 1 })} ) < 1 ) {
 
-            # add metadata lines
-            for my $s_key ( keys %{$hr_data} ) {
-
-                my $s_value = $hr_data->{$s_key};
-
-                # additional type
-                my $i_add_type_id = $or_self->{query}->select_addtype_by_name( $s_key );
-                if (! $i_add_type_id ) {
-                    $i_add_type_id = $or_self->{query}->insert_addtype( $s_key );
-                    if ( $or_self->{cache} ) {
-                        $or_self->{cache}->set( "addtype||$s_key" => $i_add_type_id );
-                    }
-                }
-
-                # additional value
-                my $i_add_value_id = $or_self->{query}->select_addvalue_id( $i_add_type_id, $s_value );
-                if (! $i_add_value_id ) {
-                    $i_add_value_id = $or_self->{query}->insert_addvalue(
-                        $i_add_type_id, $s_value,
-                    );
-                    if ( $or_self->{cache} ) {
-                        $or_self->{cache}->set( "addvalue||$i_add_type_id||$s_value" => $i_add_value_id );
-                    }
-                }
-
-                # additional metadata line
-                $or_self->{query}->insert_metadata_line(
-                    $i_header_id, $i_add_value_id,
+                # add metadata header
+                my $i_header_id = $or_self->{query}->insert_metadata_header(
+                    delete $hr_data->{TESTRUN}
                 );
+
+                # add metadata lines
+                for my $s_key ( keys %{$hr_data} ) {
+
+                    my $s_value = $hr_data->{$s_key};
+
+                    # additional type
+                    my $i_add_type_id = $or_self->{query}->select_addtype_by_name( $s_key );
+                    if (! $i_add_type_id ) {
+                        $i_add_type_id = $or_self->{query}->insert_addtype( $s_key );
+                        if ( $or_self->{cache} ) {
+                            $or_self->{cache}->set( "addtype||$s_key" => $i_add_type_id );
+                        }
+                    }
+
+                    # additional value
+                    my $i_add_value_id = $or_self->{query}->select_addvalue_id( $i_add_type_id, $s_value );
+                    if (! $i_add_value_id ) {
+                        $i_add_value_id = $or_self->{query}->insert_addvalue(
+                            $i_add_type_id, $s_value,
+                        );
+                        if ( $or_self->{cache} ) {
+                            $or_self->{cache}->set( "addvalue||$i_add_type_id||$s_value" => $i_add_value_id );
+                        }
+                    }
+
+                    # additional metadata line
+                    $or_self->{query}->insert_metadata_line(
+                        $i_header_id, $i_add_value_id,
+                    );
+
+                }
 
             }
 
@@ -297,6 +302,7 @@ Tapper::Metadata - Save and search Metadata points by database
             'key_3',
             { column => 'TESTRUN', direction => 'ASC', numeric => 1 },
         ],
+        exclusive   => 1,
         limit       => 2,
         offset      => 1,
     });
@@ -436,6 +442,7 @@ Statement Handle.
             'key_3',
             { column => 'TESTRUN', direction => 'ASC', numeric => 1 },
         ],
+        exclusive   => 1,
         limit       => 2,
         offset      => 1,
     });
@@ -566,6 +573,10 @@ An integer value which determine the number of returned metadata points.
 =item offset [optional]
 
 An integer value which determine the number of omitted metadata points.
+
+=item exclusive [optional]
+
+Select testruns which contains just the metadata "columns" given by the where attribute.
 
 =back
 
