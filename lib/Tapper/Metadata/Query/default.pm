@@ -332,7 +332,7 @@ sub select_benchmark_values {
 
         # run search in exclusive mode
         if ( $hr_search->{exclusive} ) {
-              push @a_where_vals, scalar( keys { map { $_->{column} => 1 } @{$hr_search->{where}} } );
+              push @a_where_vals, scalar( keys { map { $_->{column} => 1 } grep { $_->{column} ne 'TESTRUN' } @{$hr_search->{where}} } );
               push @a_where     , "
                   ? = (
                       SELECT COUNT(1) FROM $or_self->{config}{tables}{lines_table}{name} bar
@@ -576,7 +576,8 @@ sub select_benchmark_values {
     return $or_self->execute_query(
         "
             SELECT
-                " . ( join ",\n", map {"$_"} @a_select ) . "
+                DISTINCT
+                    " . ( join ",\n", map {"$_"} @a_select ) . "
             FROM
                 $or_self->{config}{tables}{main_table}{name} t
                 JOIN $or_self->{config}{tables}{headers_table}{name} h
