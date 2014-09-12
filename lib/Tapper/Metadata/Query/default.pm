@@ -127,7 +127,7 @@ sub select_addvalue_id {
                 FROM $or_self->{config}{tables}{additional_value_table}{name}
                 WHERE $or_self->{config}{tables}{additional_value_table}{foreign_key}{additional_type_table} = ? AND $s_value_where
             ",
-            @a_values,
+            \@a_values,
         )
     ;
     if ( !$hr_additional_type || !$hr_additional_type->{$or_self->{config}{tables}{additional_value_table}{primary}} ) {
