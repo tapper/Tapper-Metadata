@@ -21,12 +21,12 @@ sub insert_addtype {
 
     my ( $or_self, @a_vals ) = @_;
 
-    $or_self->execute_query("
+    $or_self->insert("
         INSERT OR IGNORE INTO $or_self->{config}{tables}{additional_type_table}{name}
             ( bench_additional_type, created_at )
         VALUES
             ( ?, ? )
-    ", @a_vals, $or_self->now );
+    ", [ @a_vals, $or_self->now ]);
 
     return $or_self->last_insert_id(
         $or_self->{config}{tables}{additional_type_table}{name},
@@ -39,12 +39,12 @@ sub insert_addvalue {
 
     my ( $or_self, @a_vals ) = @_;
 
-    $or_self->execute_query( "
+    $or_self->insert( "
         INSERT OR IGNORE INTO $or_self->{config}{tables}{additional_value_table}{name}
             ( bench_additional_type_id, bench_additional_value, created_at )
         VALUES
             ( ?, ?, ? )
-    ", @a_vals, $or_self->now );
+    ", [ @a_vals, $or_self->now ]);
 
     return $or_self->last_insert_id(
         $or_self->{config}{tables}{additional_value_table}{name},
@@ -57,7 +57,7 @@ sub insert_addvaluerelation {
 
     my ( $or_self, @a_vals ) = @_;
 
-    return $or_self->execute_query( "
+    return $or_self->insert( "
         INSERT OR IGNORE INTO $or_self->{config}{tables}{lines_table}{name}
             (
                 $or_self->{config}{tables}{headers_table}{primary},
@@ -65,7 +65,7 @@ sub insert_addvaluerelation {
             )
         VALUES
             ( ?, ? )
-    ", @a_vals );
+    ", \@a_vals );
 
 }
 

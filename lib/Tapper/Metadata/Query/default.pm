@@ -79,17 +79,14 @@ sub select_addtype_by_name {
         }
     }
 
-    my $hr_additional_type =
-        $or_self
-            ->execute_query(
-                "
-                    SELECT $or_self->{config}{tables}{additional_type_table}{primary}
-                    FROM $or_self->{config}{tables}{additional_type_table}{name}
-                    WHERE bench_additional_type = ?
-                ",
-                $s_add_type
-            )
-            ->fetchrow_hashref()
+    my $hr_additional_type = $or_self->selectrow_hashref(
+            "
+                SELECT $or_self->{config}{tables}{additional_type_table}{primary}
+                FROM $or_self->{config}{tables}{additional_type_table}{name}
+                WHERE bench_additional_type = ?
+            ",
+            [ $s_add_type ],
+        )
     ;
     if ( !$hr_additional_type || !$hr_additional_type->{$or_self->{config}{tables}{additional_type_table}{primary}} ) {
         return;
@@ -124,17 +121,14 @@ sub select_addvalue_id {
         $s_value_where = 'bench_additional_value IS NULL'
     }
 
-    my $hr_additional_type =
-        $or_self
-            ->execute_query(
-                "
-                    SELECT $or_self->{config}{tables}{additional_value_table}{primary}
-                    FROM $or_self->{config}{tables}{additional_value_table}{name}
-                    WHERE $or_self->{config}{tables}{additional_value_table}{foreign_key}{additional_type_table} = ? AND $s_value_where
-                ",
-                @a_values,
-            )
-            ->fetchrow_hashref()
+    my $hr_additional_type = $or_self->selectrow_hashref(
+            "
+                SELECT $or_self->{config}{tables}{additional_value_table}{primary}
+                FROM $or_self->{config}{tables}{additional_value_table}{name}
+                WHERE $or_self->{config}{tables}{additional_value_table}{foreign_key}{additional_type_table} = ? AND $s_value_where
+            ",
+            @a_values,
+        )
     ;
     if ( !$hr_additional_type || !$hr_additional_type->{$or_self->{config}{tables}{additional_value_table}{primary}} ) {
         return;
@@ -591,10 +585,11 @@ sub select_benchmark_values {
             $s_order_by
             $s_limit
             $s_offset
-        ",
-        @a_select_vals,
-        @a_from_vals,
-        @a_where_vals,
+        ", [
+            @a_select_vals,
+            @a_from_vals,
+            @a_where_vals,
+        ],
     );
 
 }
@@ -603,12 +598,12 @@ sub insert_metadata_header {
 
     my ( $or_self, $i_testrun_id ) = @_;
 
-    $or_self->execute_query( "
+    $or_self->insert( "
         INSERT INTO $or_self->{config}{tables}{headers_table}{name}
             ( testrun_id, created_at )
         VALUES
             ( ?, ? )
-    ", $i_testrun_id, $or_self->now );
+    ", [ $i_testrun_id, $or_self->now ]);
 
     return $or_self->last_insert_id(
         $or_self->{config}{tables}{headers_table}{name},

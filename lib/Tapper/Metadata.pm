@@ -224,10 +224,9 @@ sub search_array {
         }
     }
 
-    my $ar_result = $or_self
-        ->search( $hr_search )
-        ->fetchall_arrayref({})
-    ;
+    my ( $or_prepared, undef ) = $or_self->search( $hr_search );
+    my $ar_result              = $or_prepared->fetchall_arrayref({});
+                                 $or_prepared->finish();
 
     if ( $or_self->{cache} ) {
         $or_self->{cache}->set( "search_array||$s_key" => $ar_result );
@@ -256,10 +255,9 @@ sub search_hash {
         return;
     }
 
-    my $hr_result = $or_self
-        ->search( $hr_search )
-        ->fetchall_hashref($hr_search->{keys})
-    ;
+    my ( $or_prepared, undef ) = $or_self->search( $hr_search );
+    my $hr_result              = $or_prepared->fetchall_hashref($hr_search->{keys});
+                                 $or_prepared->finish();
 
     if ( $or_self->{cache} ) {
         $or_self->{cache}->set( "search_hash||$s_key" => $hr_result )

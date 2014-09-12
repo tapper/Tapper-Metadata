@@ -30,25 +30,79 @@ sub new {
 
 sub execute_query {
 
-    my ( $or_self, $s_statement, @a_vals ) = @_;
+    my ( $or_self, $s_statement, $ar_vals ) = @_;
+
+    $ar_vals ||= [];
 
     if ( $or_self->{debug} ) {
-        warn $s_statement . ' (' . (join ',', @a_vals) . ')';
+        warn $s_statement . ' (' . (join ',', @{$ar_vals}) . ')';
     }
 
     local $or_self->{dbh}{RaiseError} = 1;
 
-    my $s_key = Digest::MD5::md5($s_statement);
-    if ( $or_self->{prepared}{$s_key} ) {
-        $or_self->{prepared}{$s_key}->finish();
-    }
-    else {
-        $or_self->{prepared}{$s_key} = $or_self->{dbh}->prepare( $s_statement );
-    }
+    my $or_prepared = $or_self->{dbh}->prepare_cached( $s_statement );
+    my $b_result    = $or_prepared->execute( @{$ar_vals} );
 
-    $or_self->{prepared}{$s_key}->execute( @a_vals );
+    return ( $or_prepared, $b_result );
 
-    return $or_self->{prepared}{$s_key};
+}
+
+sub insert {
+
+    my ( $or_self, $s_statement, $ar_vals ) = @_;
+
+    my ( $or_prepared, $b_result ) = $or_self->execute_query( $s_statement, $ar_vals );
+                                    $or_prepared->finish();
+
+    return $b_result;
+
+}
+
+sub selectrow_hashref {
+
+    my ( $or_self, $s_statement, $ar_vals ) = @_;
+
+    my ( $or_prepared, undef ) = $or_self->execute_query( $s_statement, $ar_vals );
+    my $hr_return              = $or_prepared->fetchrow_hashref;
+                                 $or_prepared->finish();
+
+    return $hr_return;
+
+}
+
+sub selectrow_arrayref {
+
+    my ( $or_self, $s_statement, $ar_vals ) = @_;
+
+    my ( $or_prepared, undef ) = $or_self->execute_query( $s_statement, $ar_vals );
+    my $hr_return              = $or_prepared->fetchrow_arrayref;
+                                 $or_prepared->finish();
+
+    return $hr_return;
+
+}
+
+sub selectall_arrayref {
+
+    my ( $or_self, $s_statement, $ar_vals ) = @_;
+
+    my ( $or_prepared, undef ) = $or_self->execute_query( $s_statement, $ar_vals );
+    my $hr_return              = $or_prepared->fetchall_arrayref;
+                                 $or_prepared->finish();
+
+    return $hr_return;
+
+}
+
+sub selectall_hashref {
+
+    my ( $or_self, $s_statement, $ar_vals ) = @_;
+
+    my ( $or_prepared, undef ) = $or_self->execute_query( $s_statement, $ar_vals );
+    my $hr_return              = $or_prepared->fetchall_arrayref({});
+                                 $or_prepared->finish();
+
+    return $hr_return;
 
 }
 
