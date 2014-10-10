@@ -100,7 +100,7 @@ sub add_single_metadata {
     my $i_redo_count = 0;
     TRANSACTION: {
 
-        $or_self->{query}->start_transaction();
+        my $b_transaction_started = $or_self->{query}->start_transaction();
 
         eval {
 
@@ -166,7 +166,7 @@ sub add_single_metadata {
 
         };
 
-        my $b_success = $or_self->{query}->finish_transaction($@);
+        my $b_success = $or_self->{query}->finish_transaction( $b_transaction_started, $@ );
 
         if ( !$b_success && $@ ) {
             if ( $@ =~ /try restarting transaction/ ) {

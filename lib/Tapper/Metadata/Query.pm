@@ -124,57 +124,66 @@ sub start_transaction {
 
     my ( $or_self ) = @_;
 
+    if ( defined( $or_self->{transaction_supported} ) && !$or_self->{transaction_supported} ) {
+        return 0;
+    }
+    if ( $or_self->{dbh}{BegunWork} || $or_self->{dbh}{AutoCommit} == 0 ) {
+        return 0;
+    }
+
     @{$or_self->{backup_attributes}}{qw/RaiseError PrintError AutoCommit/} =
         @{$or_self->{dbh}}{qw/RaiseError PrintError AutoCommit/}
     ;
 
     eval {
+        $or_self->{dbh}{AutoCommit} = 0;
         $or_self->{dbh}{RaiseError} = 1;
         $or_self->{dbh}{PrintError} = 0;
-        $or_self->{dbh}{AutoCommit} = 0;
     };
     if ( $@ ) {
         if ( $or_self->{debug} ) {
             require Carp;
             Carp::cluck('Transactions not supported by your database');
-            return 0;
         }
+        $or_self->{transaction_supported} = 0;
+        return 0;
     }
-
-    $or_self->{transaction_supported} = 1;
-    return 1;
+    else {
+        $or_self->{transaction_supported} = 1;
+        return 1;
+    }
 
 }
 
 sub finish_transaction {
 
-    my ( $or_self, $s_error ) = @_;
+    my ( $or_self, $b_started, $s_error ) = @_;
 
     if ( $or_self->{transaction_supported} ) {
-
-        if ( $s_error ) {
-
-            $or_self->{dbh}->rollback();
-
-            @{$or_self->{dbh}}{qw/RaiseError PrintError AutoCommit/} =
-                @{$or_self->{backup_attributes}}{qw/RaiseError PrintError AutoCommit/}
-            ;
-
-            require Carp;
-            Carp::confess("transaction failed: $s_error");
-            return 0;
-
+        if ( $b_started ) {
+            if ( $s_error ) {
+                $or_self->{dbh}->rollback();
+                @{$or_self->{dbh}}{qw/RaiseError PrintError AutoCommit/} =
+                    @{$or_self->{backup_attributes}}{qw/RaiseError PrintError AutoCommit/}
+                ;
+                require Carp;
+                Carp::confess("transaction failed: $s_error");
+                return 0;
+            }
+            else {
+                $or_self->{dbh}->commit();
+                @{$or_self->{dbh}}{qw/RaiseError PrintError AutoCommit/} =
+                    @{$or_self->{backup_attributes}}{qw/RaiseError PrintError AutoCommit/}
+                ;
+            }
         }
         else {
-
-            $or_self->{dbh}->commit();
-
-            @{$or_self->{dbh}}{qw/RaiseError PrintError AutoCommit/} =
-                @{$or_self->{backup_attributes}}{qw/RaiseError PrintError AutoCommit/}
-            ;
-
+            if ( $s_error ) {
+                require Carp;
+                Carp::confess("transaction failed: $s_error");
+                return 0;
+            }
         }
-
     }
 
     return 1;
