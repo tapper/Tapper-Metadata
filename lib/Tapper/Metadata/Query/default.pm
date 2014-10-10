@@ -567,30 +567,32 @@ sub select_benchmark_values {
         ";
     }
 
-    return $or_self->execute_query(
-        "
-            SELECT
-                DISTINCT
-                    " . ( join ",\n", map {"$_"} @a_select ) . "
-            FROM
-                $or_self->{config}{tables}{main_table}{name} t
-                JOIN $or_self->{config}{tables}{headers_table}{name} h
-                    ON ( t.id = h.testrun_id )
-                " . ( join "\n", @a_from ) . "
-            WHERE
-                " .
-                ( @a_where      ? join "\nAND ", map { $_ } @a_where  : q## ) .
-                ( $s_raw_where  ? " $s_raw_where"                       : q## ) .
+    return (
+        $or_self->execute_query(
             "
-            $s_order_by
-            $s_limit
-            $s_offset
-        ", [
-            @a_select_vals,
-            @a_from_vals,
-            @a_where_vals,
-        ],
-    );
+                SELECT
+                    DISTINCT
+                        " . ( join ",\n", map {"$_"} @a_select ) . "
+                FROM
+                    $or_self->{config}{tables}{main_table}{name} t
+                    JOIN $or_self->{config}{tables}{headers_table}{name} h
+                        ON ( t.id = h.testrun_id )
+                    " . ( join "\n", @a_from ) . "
+                WHERE
+                    " .
+                    ( @a_where      ? join "\nAND ", map { $_ } @a_where  : q## ) .
+                    ( $s_raw_where  ? " $s_raw_where"                       : q## ) .
+                "
+                $s_order_by
+                $s_limit
+                $s_offset
+            ", [
+                @a_select_vals,
+                @a_from_vals,
+                @a_where_vals,
+            ],
+        )
+    )[0];
 
 }
 
