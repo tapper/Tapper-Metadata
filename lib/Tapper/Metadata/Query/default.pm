@@ -567,7 +567,7 @@ sub select_benchmark_values {
         ";
     }
 
-    return (
+    return
         $or_self->execute_query(
             "
                 SELECT
@@ -592,7 +592,7 @@ sub select_benchmark_values {
                 @a_where_vals,
             ],
         )
-    )[0];
+    ;
 
 }
 
