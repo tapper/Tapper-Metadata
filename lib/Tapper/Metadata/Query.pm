@@ -10,8 +10,6 @@ sub new {
 
     my ( $s_self, $hr_atts ) = @_;
 
-    my $or_self = bless {}, $s_self;
-
     for my $s_key (qw/ config dbh /) {
         if (! $hr_atts->{$s_key} ) {
             require Carp;
@@ -19,12 +17,13 @@ sub new {
         }
     }
 
-    $or_self->{dbh}     = $hr_atts->{dbh};
-    $or_self->{cache}   = $hr_atts->{cache};
-    $or_self->{debug}   = $hr_atts->{debug} || 0;
-    $or_self->{config}  = $hr_atts->{config};
-
-    return $or_self;
+    return bless {
+        now     => $hr_atts->{now},
+        dbh     => $hr_atts->{dbh},
+        cache   => $hr_atts->{cache},
+        debug   => $hr_atts->{debug} || 0,
+        config  => $hr_atts->{config},
+    }, $s_self;
 
 }
 
@@ -114,10 +113,6 @@ sub last_insert_id {
         undef, undef, $s_table, $s_column,
     );
 
-}
-
-sub now {
-    return DateTime->now()->strftime('%F %T');
 }
 
 sub start_transaction {

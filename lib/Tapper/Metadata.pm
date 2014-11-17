@@ -81,7 +81,9 @@ sub new {
         return;
     }
     else {
+        require DateTime;
         $or_self->{query} = $s_module->new({
+            now    => $hr_atts->{now} || DateTime->now->strftime('%F %T'),
             dbh    => $hr_atts->{dbh},
             cache  => $or_self->{cache},
             debug  => $hr_atts->{debug} || 0,
@@ -129,37 +131,52 @@ sub add_single_metadata {
                 my $i_header_id = $or_self->{query}->insert_metadata_header(
                     delete $hr_data->{TESTRUN}
                 );
+                if (! $i_header_id ) {
+                    die "cannot insert metadata header";
+                }
+
+                # WARNING: Don't add all three entries inside the same loop. This
+                #          leads to deadlocks. Add all entries for one table,
+                #          after that - go to the next table.
 
                 # add metadata lines
-                for my $s_key ( keys %{$hr_data} ) {
+                my %h_deadlock_free_inserts;
 
-                    my $s_value = $hr_data->{$s_key};
+                # additional type
+                for my $s_add_type ( keys %{$hr_data} ) {
 
-                    # additional type
-                    my $i_add_type_id = $or_self->{query}->select_addtype_by_name( $s_key );
+                    my $i_add_type_id = $or_self->{query}->select_addtype_by_name( $s_add_type );
                     if (! $i_add_type_id ) {
-                        $i_add_type_id = $or_self->{query}->insert_addtype( $s_key );
-                        if ( $or_self->{cache} ) {
-                            $or_self->{cache}->set( "addtype||$s_key" => $i_add_type_id );
-                        }
+                        $i_add_type_id = $or_self->{query}->insert_addtype( $s_add_type );
+                    }
+                    if (! $i_add_type_id ) {
+                        die "cannot find or insert bench additional type id for '$s_add_type'";
                     }
 
-                    # additional value
-                    my $i_add_value_id = $or_self->{query}->select_addvalue_id( $i_add_type_id, $s_value );
+                    $h_deadlock_free_inserts{$i_add_type_id} = $hr_data->{$s_add_type};
+
+                }
+
+                # additional value
+                for my $i_add_type ( keys %h_deadlock_free_inserts ) {
+
+                    my $i_add_value_id = $or_self->{query}->select_addvalue_id( $i_add_type, $h_deadlock_free_inserts{$i_add_type} );
                     if (! $i_add_value_id ) {
-                        $i_add_value_id = $or_self->{query}->insert_addvalue(
-                            $i_add_type_id, $s_value,
-                        );
-                        if ( $or_self->{cache} ) {
-                            $or_self->{cache}->set( "addvalue||$i_add_type_id||$s_value" => $i_add_value_id );
-                        }
+                        $i_add_value_id = $or_self->{query}->insert_addvalue( $i_add_type, $h_deadlock_free_inserts{$i_add_type}, );
+                    }
+                    if (! $i_add_value_id ) {
+                        die "cannot find or insert bench additional value id for '$i_add_type', '$h_deadlock_free_inserts{$i_add_type}'";
                     }
 
-                    # additional metadata line
+                    $h_deadlock_free_inserts{$i_add_type} = $i_add_value_id;
+
+                }
+
+                # additional metadata line
+                for my $i_add_value_id ( values %h_deadlock_free_inserts ) {
                     $or_self->{query}->insert_metadata_line(
                         $i_header_id, $i_add_value_id,
                     );
-
                 }
 
             }
@@ -175,10 +192,10 @@ sub add_single_metadata {
                 }
             }
             print STDERR $@;
-            return $b_success;
+            return $@;
         }
         else {
-            return $b_success;
+            return;
         }
 
     } # TRANSACTION
@@ -191,13 +208,16 @@ sub add_multi_metadata {
 
     my ( $i_counter, @a_error ) = ( 0 );
     for my $hr_data ( @{$ar_data} ) {
-        if ( $or_self->add_single_metadata( $hr_data, $hr_options ) ) {
-            push @a_error, $i_counter;
+        if ( my $s_error = $or_self->add_single_metadata( $hr_data, $hr_options ) ) {
+            push @a_error, {
+                'index' => $i_counter,
+                'error' => $s_error,
+            };
         }
         $i_counter++;
     }
 
-    return @a_error;
+    return ( wantarray ? @a_error : ( @a_error ? 0 : 1 ));
 
 }
 

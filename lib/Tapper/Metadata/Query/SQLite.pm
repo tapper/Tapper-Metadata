@@ -4,34 +4,34 @@ use strict;
 use warnings;
 use base 'Tapper::Metadata::Query::default';
 
-sub get_group_concat {
-
-    my ( $or_self, $hr_options ) = @_;
-
-    return
-          'GROUP_CONCAT('
-        . join(' || ', @{$hr_options->{columns}})
-        . ( $hr_options->{separator} ? ",'$hr_options->{separator}'" : q## )
-        . ')'
-    ;
-
-}
-
 sub insert_addtype {
 
     my ( $or_self, @a_vals ) = @_;
 
-    $or_self->insert("
+    my $s_primary = $or_self->{config}{tables}{additional_type_table}{primary};
+
+    $or_self->insert( "
         INSERT OR IGNORE INTO $or_self->{config}{tables}{additional_type_table}{name}
             ( bench_additional_type, created_at )
         VALUES
             ( ?, ? )
-    ", [ @a_vals, $or_self->now ]);
+    ", [ @a_vals, $or_self->{now} ]);
 
-    return $or_self->last_insert_id(
-        $or_self->{config}{tables}{additional_type_table}{name},
-        $or_self->{config}{tables}{additional_type_table}{primary},
-    );
+    my $i_bench_additional_type_id =
+           $or_self->last_insert_id(
+               $or_self->{config}{tables}{additional_type_table}{name},
+               $or_self->{config}{tables}{additional_type_table}{primary},
+           )
+        || $or_self->select_addtype_by_name( @a_vals )
+    ;
+
+    if ( $i_bench_additional_type_id && $or_self->{cache} ) {
+        $or_self->{cache}->set(
+            "addtype||$a_vals[0]" => $i_bench_additional_type_id,
+        );
+    }
+
+    return $i_bench_additional_type_id;
 
 }
 
@@ -39,33 +39,31 @@ sub insert_addvalue {
 
     my ( $or_self, @a_vals ) = @_;
 
+    my $s_primary = $or_self->{config}{tables}{additional_value_table}{primary};
+
     $or_self->insert( "
         INSERT OR IGNORE INTO $or_self->{config}{tables}{additional_value_table}{name}
             ( bench_additional_type_id, bench_additional_value, created_at )
         VALUES
             ( ?, ?, ? )
-    ", [ @a_vals, $or_self->now ]);
+        ON DUPLICATE KEY UPDATE $s_primary = LAST_INSERT_ID($s_primary) 
+    ", [ @a_vals, $or_self->{now} ]);
 
-    return $or_self->last_insert_id(
-        $or_self->{config}{tables}{additional_value_table}{name},
-        $or_self->{config}{tables}{additional_value_table}{primary},
-    );
+    my $i_addvalue_id =
+           $or_self->last_insert_id(
+               $or_self->{config}{tables}{additional_value_table}{name},
+               $or_self->{config}{tables}{additional_value_table}{primary},
+           )
+        || $or_self->select_addvalue_id( @a_vals )
+    ;
 
-}
+    if ( $i_addvalue_id && $or_self->{cache} ) {
+        $or_self->{cache}->set(
+            "addvalue||$a_vals[0]||$a_vals[1]" => $i_bench_additional_value_id,
+        );
+    }
 
-sub insert_addvaluerelation {
-
-    my ( $or_self, @a_vals ) = @_;
-
-    return $or_self->insert( "
-        INSERT OR IGNORE INTO $or_self->{config}{tables}{lines_table}{name}
-            (
-                $or_self->{config}{tables}{headers_table}{primary},
-                $or_self->{config}{tables}{additional_value_table}{primary}
-            )
-        VALUES
-            ( ?, ? )
-    ", \@a_vals );
+    return $i_addvalue_id;
 
 }
 

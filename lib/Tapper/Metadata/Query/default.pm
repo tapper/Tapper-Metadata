@@ -121,7 +121,7 @@ sub select_addvalue_id {
         $s_value_where = 'bench_additional_value IS NULL'
     }
 
-    my $hr_additional_type = $or_self->selectrow_hashref(
+    my $ar_additional_type = $or_self->selectrow_arrayref(
             "
                 SELECT $or_self->{config}{tables}{additional_value_table}{primary}
                 FROM $or_self->{config}{tables}{additional_value_table}{name}
@@ -130,15 +130,16 @@ sub select_addvalue_id {
             \@a_values,
         )
     ;
-    if ( !$hr_additional_type || !$hr_additional_type->{$or_self->{config}{tables}{additional_value_table}{primary}} ) {
+    if ( !$ar_additional_type || !$ar_additional_type->[0] ) {
         return;
     }
     if ( $or_self->{cache} ) {
         $or_self->{cache}->set(
-            "addvalue||$i_bench_additional_type_id||$s_bench_additional_value" => $hr_additional_type->{$or_self->{config}{tables}{additional_value_table}{primary}},
+            "addvalue||$i_bench_additional_type_id||$s_bench_additional_value" => $ar_additional_type->[0],
         );
     }
-    return $hr_additional_type->{$or_self->{config}{tables}{additional_value_table}{primary}};
+
+    return $ar_additional_type->[0];
 
 }
 
@@ -605,12 +606,28 @@ sub insert_metadata_header {
             ( testrun_id, created_at )
         VALUES
             ( ?, ? )
-    ", [ $i_testrun_id, $or_self->now ]);
+    ", [ $i_testrun_id, $or_self->{now} ]);
 
     return $or_self->last_insert_id(
         $or_self->{config}{tables}{headers_table}{name},
         $or_self->{config}{tables}{headers_table}{primary},
     );
+
+}
+
+sub insert_metadata_line {
+
+    my ( $or_self, @a_vals ) = @_;
+
+    return $or_self->insert( "
+        INSERT INTO $or_self->{config}{tables}{lines_table}{name}
+            (
+                $or_self->{config}{tables}{headers_table}{primary},
+                $or_self->{config}{tables}{additional_value_table}{primary}
+            )
+        VALUES
+            ( ?, ? )
+    ", \@a_vals );
 
 }
 
