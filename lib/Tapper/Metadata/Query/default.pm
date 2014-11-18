@@ -10,6 +10,7 @@ my %h_used_selects;
 my %h_default_columns = (
     'TESTRUN'       => { column => 't.id' },
     'TESTPLAN'      => { column => 't.testplan_id' },
+    'HEADER_ID'     => { column => 'h.testrun_metadata_header_id' },
     'STATS_FAILED'  => { column => 'rgts.failed', addon => 'stats_table' },
 );
 my $fn_numeric_operators = sub {

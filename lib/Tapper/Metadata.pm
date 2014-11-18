@@ -77,7 +77,7 @@ sub new {
 
     if ( $@ || !$fn_new_sub ) {
         require Carp;
-        Carp::confess("database engine '$hr_atts->{dbh}{Driver}{Name}' not supported");
+        Carp::confess("database engine '$hr_atts->{dbh}{Driver}{Name}' not supported $@");
         return;
     }
     else {
@@ -111,21 +111,24 @@ sub add_single_metadata {
             }
 
             # check for already existing metadata-set
-            my $hr_search = {
-                select      => [ 'TESTRUN', ],
-                exclusive   => 1,
-                where       => [
-                    map {
-                        {
-                            operator => '=',
-                            column   => $_,
-                            values   => $hr_data->{$_},
-                        },
-                    } keys %{$hr_data}
-                ],
+            my $ar_exists;
+            eval {
+                $ar_exists = $or_self->search_array({
+                    select      => [ 'TESTRUN', ],
+                    exclusive   => 1,
+                    where       => [
+                        map {
+                            {
+                                operator => '=',
+                                column   => $_,
+                                values   => $hr_data->{$_},
+                            },
+                        } keys %{$hr_data}
+                    ],
+                });
             };
 
-            if ( scalar( @{$or_self->search_array($hr_search)} ) < 1 ) {
+            if ( !$ar_exists || @{$ar_exists} < 1 ) {
 
                 # add metadata header
                 my $i_header_id = $or_self->{query}->insert_metadata_header(
@@ -185,14 +188,20 @@ sub add_single_metadata {
 
         my $b_success = $or_self->{query}->finish_transaction( $b_transaction_started, $@ );
 
-        if ( !$b_success && $@ ) {
-            if ( $@ =~ /try restarting transaction/ ) {
-                if ( ++$i_redo_count <= $or_self->{config}{max_redo_count} ) {
-                    redo TRANSACTION;
+        if (! $b_success ) {
+            if ( $@ ) {
+                if ( $@ =~ /try restarting transaction/ ) {
+                    if ( ++$i_redo_count <= $or_self->{config}{max_redo_count} ) {
+                        redo TRANSACTION;
+                    }
                 }
+                print STDERR $@;
+                return $@;
             }
-            print STDERR $@;
-            return $@;
+            else {
+                print STDERR 'unknown error occured';
+                return 'unknown error occured';
+            }
         }
         else {
             return;

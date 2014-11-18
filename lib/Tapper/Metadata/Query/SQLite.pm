@@ -43,11 +43,10 @@ sub insert_addvalue {
 
     $or_self->insert( "
         INSERT OR IGNORE INTO $or_self->{config}{tables}{additional_value_table}{name}
-            ( bench_additional_type_id, bench_additional_value, created_at )
+            ( bench_additional_type_id, bench_additional_value )
         VALUES
-            ( ?, ?, ? )
-        ON DUPLICATE KEY UPDATE $s_primary = LAST_INSERT_ID($s_primary) 
-    ", [ @a_vals, $or_self->{now} ]);
+            ( ?, ? )
+    ", [ @a_vals ]);
 
     my $i_addvalue_id =
            $or_self->last_insert_id(
@@ -59,7 +58,7 @@ sub insert_addvalue {
 
     if ( $i_addvalue_id && $or_self->{cache} ) {
         $or_self->{cache}->set(
-            "addvalue||$a_vals[0]||$a_vals[1]" => $i_bench_additional_value_id,
+            "addvalue||$a_vals[0]||$a_vals[1]" => $i_addvalue_id,
         );
     }
 
