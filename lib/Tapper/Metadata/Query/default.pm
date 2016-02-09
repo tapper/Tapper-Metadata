@@ -556,7 +556,7 @@ sub select_benchmark_values {
     my $s_raw_where = $hr_search->{where_sql};
     if ( $s_raw_where ) {
         $s_raw_where =~ s/
-            \${(.+?)}
+            \$\{(.+?)\}
         /
             $h_local_from_cache{$1}
                 ? $h_local_from_cache{$1}
