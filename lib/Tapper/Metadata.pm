@@ -361,7 +361,7 @@ way to the the database. A search function with complexe filters already exists.
 
 =head3 new
 
-=over
+=over 4
 
 =item
 
@@ -373,7 +373,7 @@ Create a new B<Tapper::Metadata> object.
         config => YAML::Syck::LoadFile('~/conf/tapper_metadata.conf'),
     });
 
-=over
+=over 4
 
 =item dbh
 
@@ -391,9 +391,12 @@ written to STDOUT. The default is 0.
 
 =back
 
+=back
+
+
 =head3 add_single_metadata
 
-=over
+=over 4
 
 =item
 
@@ -407,23 +410,24 @@ Add one or more data points to a single metadata to the database.
         force => 1
     });
 
-=over
+=over 4
 
-=item 1. Parameter HASH
+=item 1st Parameter HASH
 
 =item 1.1 Parameter Hash => TESTRUN
 
 The Testrun ID to relate metadata with a testrun.
 
-=item 2. Parameter Hash => force [optional]
+=item 2nd Parameter Hash => force [optional]
 
 Ignore forgivable errors while writing.
 
+=back
+
+=back
+
+
 =head3 add_multi_metadata
-
-=over
-
-=item
 
 Add one or more data points to a multiple metadata to the database.
 
@@ -441,25 +445,22 @@ Add one or more data points to a multiple metadata to the database.
         force => 1
     });
 
-=over
+=over 4
 
-=item 1. Parameter ARRAY of HASHES
+=item 1st Parameter ARRAY of HASHES
 
-=item 1.1 Parameter Hash => TESTRUN
+=item 1st 1st Parameter Hash => TESTRUN
 
 The Testrun ID to relate metadata with a testrun.
 
-=item 2. Parameter Hash => force [optional]
+=item 2nd Parameter Hash => force [optional]
 
 Ignore forgivable errors while writing.
 
 =back
 
+
 =head3 search
-
-=over
-
-=item
 
 Search for metadata points in the database. Function returns a DBI
 Statement Handle.
@@ -488,7 +489,7 @@ Statement Handle.
         offset      => 1,
     });
 
-=over
+=over 4
 
 =item select [optional]
 
@@ -615,17 +616,11 @@ An integer value which determine the number of returned metadata points.
 
 An integer value which determine the number of omitted metadata points.
 
-=item exclusive [optional]
+=back
 
 Select testruns which contains just the metadata "columns" given by the where attribute.
 
-=back
-
 =head3 search_array
-
-=over
-
-=item
 
 Returning all metadata points as Array of Hashes.
 
@@ -646,13 +641,8 @@ Returning all metadata points as Array of Hashes.
         offset      => 1,
     });
 
-=back
 
 =head3 search_hash
-
-=over
-
-=item
 
 Returning all metadata points as Hash of Hashes. As compared to search
 C<search_array> this function needs the parameter C<keys>. C<keys> is an Array
@@ -680,17 +670,12 @@ Every "key" create a new nested hash.
         offset      => 1,
     });
 
-=back
 
 =head1 Configuration
 
-=over
-
-=item
-
 The following elements are required in configuration:
 
-=over
+=over 4
 
 =item default_aggregation
 
@@ -710,3 +695,5 @@ Containing the names of the tables used bei B<Tapper::Metadata>
 =item select_cache [optional]
 
 In case of a true value the module cache some select results
+
+=back
