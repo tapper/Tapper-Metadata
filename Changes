@@ -1,0 +1,6 @@
+Revision history for {{$dist->name}}
+
+{{$NEXT}}
+        - This is a library to provide a schema for
+          storing key/value Tapper metadata
+          in an SQL database
